@@ -30,12 +30,34 @@ BASE64_ENC_FUNCTION(sse41)
 #endif
 }
 
+BASE64_ENC_FUNCTION(sse41_url)
+{
+#if HAVE_SSE41
+	#include "../generic/enc_head.c"
+	enc_loop_ssse3_url(&s, &slen, &o, &olen);
+	#include "../generic/enc_tail_url.c"
+#else
+	BASE64_ENC_STUB
+#endif
+}
+
 BASE64_DEC_FUNCTION(sse41)
 {
 #if HAVE_SSE41
 	#include "../generic/dec_head.c"
 	dec_loop_ssse3(&s, &slen, &o, &olen);
 	#include "../generic/dec_tail.c"
+#else
+	BASE64_DEC_STUB
+#endif
+}
+
+BASE64_DEC_FUNCTION(sse41_url)
+{
+#if HAVE_SSE41
+	#include "../generic/dec_head_url.c"
+	dec_loop_ssse3_url(&s, &slen, &o, &olen);
+	#include "../generic/dec_tail_url.c"
 #else
 	BASE64_DEC_STUB
 #endif

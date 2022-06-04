@@ -1,7 +1,12 @@
 base64_encode
+base64_encode_url
 base64_stream_encode
+base64_stream_encode_url
 base64_stream_encode_init
 base64_stream_encode_final
+base64_stream_encode_final_url
 base64_decode
+base64_decode_url
 base64_stream_decode
+base64_stream_decode_url
 base64_stream_decode_init

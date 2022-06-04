@@ -8,6 +8,14 @@ def tr(x):
       + '+/'
     return ord(s[x])
 
+def tr_url(x):
+    """Translate a 6-bit value to the Base64 alphabet."""
+    s = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' \
+      + 'abcdefghijklmnopqrstuvwxyz' \
+      + '0123456789' \
+      + '-_'
+    return ord(s[x])
+
 def table(fn):
     """Generate a 12-bit lookup table."""
     ret = []
@@ -25,6 +33,14 @@ def table_le():
     """Generate a 12-bit little-endian lookup table."""
     return table(lambda n: (tr(n >> 6) << 0) | (tr(n & 0x3F) << 8))
 
+def table_be_url():
+    """Generate a 12-bit big-endian lookup table."""
+    return table(lambda n: (tr_url(n & 0x3F) << 0) | (tr_url(n >> 6) << 8))
+
+def table_le_url():
+    """Generate a 12-bit little-endian lookup table."""
+    return table(lambda n: (tr_url(n >> 6) << 0) | (tr_url(n & 0x3F) << 8))
+
 def main():
     """Entry point."""
     lines = [
@@ -36,7 +52,16 @@ def main():
         "#else",
         table_be(),
         "#endif",
-        "};"
+        "};",
+        "",
+        "const uint16_t base64_table_enc_12bit_url[] = {",
+        "#if BASE64_LITTLE_ENDIAN",
+        table_le_url(),
+        "#else",
+        table_be_url(),
+        "#endif",
+        "};",
+        ""
     ]
     for line in lines:
         print(line)

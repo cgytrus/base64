@@ -29,6 +29,17 @@ BASE64_ENC_FUNCTION(plain)
 	#include "enc_tail.c"
 }
 
+BASE64_ENC_FUNCTION(plain_url)
+{
+	#include "enc_head.c"
+#if BASE64_WORDSIZE == 32
+	enc_loop_generic_32_url(&s, &slen, &o, &olen);
+#elif BASE64_WORDSIZE == 64
+	enc_loop_generic_64_url(&s, &slen, &o, &olen);
+#endif
+	#include "enc_tail_url.c"
+}
+
 BASE64_DEC_FUNCTION(plain)
 {
 	#include "dec_head.c"
@@ -36,4 +47,13 @@ BASE64_DEC_FUNCTION(plain)
 	dec_loop_generic_32(&s, &slen, &o, &olen);
 #endif
 	#include "dec_tail.c"
+}
+
+BASE64_DEC_FUNCTION(plain_url)
+{
+	#include "dec_head_url.c"
+#if BASE64_WORDSIZE >= 32
+	dec_loop_generic_32_url(&s, &slen, &o, &olen);
+#endif
+	#include "dec_tail_url.c"
 }

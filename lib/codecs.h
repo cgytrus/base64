@@ -59,7 +59,9 @@
 struct codec
 {
 	void (* enc) BASE64_ENC_PARAMS;
+	void (* enc_url) BASE64_ENC_PARAMS;
 	int  (* dec) BASE64_DEC_PARAMS;
+	int  (* dec_url) BASE64_DEC_PARAMS;
 };
 
 extern void codec_choose (struct codec *, int flags);

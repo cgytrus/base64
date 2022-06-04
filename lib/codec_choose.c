@@ -8,7 +8,7 @@
 #include "config.h"
 #include "env.h"
 
-#if (__x86_64__ || __i386__ || _M_X86 || _M_X64)
+#if (__x86_64__ || __i386__ || _M_IX86 || _M_X64)
   #define BASE64_X86
   #if (HAVE_SSSE3 || HAVE_SSE41 || HAVE_SSE42 || HAVE_AVX || HAVE_AVX2)
     #define BASE64_X86_SIMD
@@ -76,13 +76,19 @@
 	BASE64_DEC_FUNCTION(arch);	\
 
 BASE64_CODEC_FUNCS(avx2)
+BASE64_CODEC_FUNCS(avx2_url)
 BASE64_CODEC_FUNCS(neon32)
 BASE64_CODEC_FUNCS(neon64)
 BASE64_CODEC_FUNCS(plain)
+BASE64_CODEC_FUNCS(plain_url)
 BASE64_CODEC_FUNCS(ssse3)
+BASE64_CODEC_FUNCS(ssse3_url)
 BASE64_CODEC_FUNCS(sse41)
+BASE64_CODEC_FUNCS(sse41_url)
 BASE64_CODEC_FUNCS(sse42)
+BASE64_CODEC_FUNCS(sse42_url)
 BASE64_CODEC_FUNCS(avx)
+BASE64_CODEC_FUNCS(avx_url)
 
 static bool
 codec_choose_forced (struct codec *codec, int flags)
@@ -96,7 +102,9 @@ codec_choose_forced (struct codec *codec, int flags)
 	}
 	if (flags & BASE64_FORCE_AVX2) {
 		codec->enc = base64_stream_encode_avx2;
+		codec->enc_url = base64_stream_encode_avx2_url;
 		codec->dec = base64_stream_decode_avx2;
+		codec->dec_url = base64_stream_decode_avx2_url;
 		return true;
 	}
 	if (flags & BASE64_FORCE_NEON32) {
@@ -111,27 +119,37 @@ codec_choose_forced (struct codec *codec, int flags)
 	}
 	if (flags & BASE64_FORCE_PLAIN) {
 		codec->enc = base64_stream_encode_plain;
+		codec->enc_url = base64_stream_encode_plain_url;
 		codec->dec = base64_stream_decode_plain;
+		codec->dec_url = base64_stream_decode_plain_url;
 		return true;
 	}
 	if (flags & BASE64_FORCE_SSSE3) {
 		codec->enc = base64_stream_encode_ssse3;
+		codec->enc_url = base64_stream_encode_ssse3_url;
 		codec->dec = base64_stream_decode_ssse3;
+		codec->dec_url = base64_stream_decode_ssse3_url;
 		return true;
 	}
 	if (flags & BASE64_FORCE_SSE41) {
 		codec->enc = base64_stream_encode_sse41;
+		codec->enc_url = base64_stream_encode_sse41_url;
 		codec->dec = base64_stream_decode_sse41;
+		codec->dec_url = base64_stream_decode_sse41_url;
 		return true;
 	}
 	if (flags & BASE64_FORCE_SSE42) {
 		codec->enc = base64_stream_encode_sse42;
+		codec->enc_url = base64_stream_encode_sse42_url;
 		codec->dec = base64_stream_decode_sse42;
+		codec->dec_url = base64_stream_decode_sse42_url;
 		return true;
 	}
 	if (flags & BASE64_FORCE_AVX) {
 		codec->enc = base64_stream_encode_avx;
+		codec->enc_url = base64_stream_encode_avx_url;
 		codec->dec = base64_stream_decode_avx;
+		codec->dec_url = base64_stream_decode_avx_url;
 		return true;
 	}
 	return false;
@@ -200,7 +218,9 @@ codec_choose_x86 (struct codec *codec)
 					__cpuid_count(7, 0, eax, ebx, ecx, edx);
 					if (ebx & bit_AVX2) {
 						codec->enc = base64_stream_encode_avx2;
+						codec->enc_url = base64_stream_encode_avx2_url;
 						codec->dec = base64_stream_decode_avx2;
+						codec->dec_url = base64_stream_decode_avx2_url;
 						return true;
 					}
 				}
@@ -209,7 +229,9 @@ codec_choose_x86 (struct codec *codec)
 				__cpuid_count(1, 0, eax, ebx, ecx, edx);
 				if (ecx & bit_AVX) {
 					codec->enc = base64_stream_encode_avx;
+					codec->enc_url = base64_stream_encode_avx_url;
 					codec->dec = base64_stream_decode_avx;
+					codec->dec_url = base64_stream_decode_avx_url;
 					return true;
 				}
 				#endif
@@ -224,7 +246,9 @@ codec_choose_x86 (struct codec *codec)
 		__cpuid(1, eax, ebx, ecx, edx);
 		if (ecx & bit_SSE42) {
 			codec->enc = base64_stream_encode_sse42;
+			codec->enc_url = base64_stream_encode_sse42_url;
 			codec->dec = base64_stream_decode_sse42;
+			codec->dec_url = base64_stream_decode_sse42_url;
 			return true;
 		}
 	}
@@ -236,7 +260,9 @@ codec_choose_x86 (struct codec *codec)
 		__cpuid(1, eax, ebx, ecx, edx);
 		if (ecx & bit_SSE41) {
 			codec->enc = base64_stream_encode_sse41;
+			codec->enc_url = base64_stream_encode_sse41_url;
 			codec->dec = base64_stream_decode_sse41;
+			codec->dec_url = base64_stream_decode_sse41_url;
 			return true;
 		}
 	}
@@ -248,7 +274,9 @@ codec_choose_x86 (struct codec *codec)
 		__cpuid(1, eax, ebx, ecx, edx);
 		if (ecx & bit_SSSE3) {
 			codec->enc = base64_stream_encode_ssse3;
+			codec->enc_url = base64_stream_encode_ssse3_url;
 			codec->dec = base64_stream_decode_ssse3;
+			codec->dec_url = base64_stream_decode_ssse3_url;
 			return true;
 		}
 	}
@@ -277,5 +305,7 @@ codec_choose (struct codec *codec, int flags)
 		return;
 	}
 	codec->enc = base64_stream_encode_plain;
+	codec->enc_url = base64_stream_encode_plain_url;
 	codec->dec = base64_stream_decode_plain;
+	codec->dec_url = base64_stream_decode_plain_url;
 }

@@ -53,7 +53,9 @@ static void printStart(void)
 {
 	printf("#include <stdint.h>\n");
 	printf("#define CHAR62 '%c'\n", b64chars[62]);
+	printf("#define CHAR62_URL '%c'\n", '-');
 	printf("#define CHAR63 '%c'\n", b64chars[63]);
+	printf("#define CHAR63_URL '%c'\n", '_');
 	printf("#define CHARPAD '%c'\n", padchar);
 }
 
@@ -142,7 +144,45 @@ int main(int argc, char** argv)
 	uint32_array_to_c_hex(ary, sizeof(ary) / sizeof(uint32_t), "base64_table_dec_32bit_d3");
 	printf("\n\n");
 
+	b64chars[62] = '-';
+	b64chars[63] = '_';
+
+	clearDecodeTable(ary);
+	for (i = 0; i < 64; ++i) {
+		x = b64chars[i];
+		ary[x] = i << 2;
+	}
+	uint32_array_to_c_hex(ary, sizeof(ary) / sizeof(uint32_t), "base64_table_dec_32bit_d0_url");
+	printf("\n\n");
+
+	clearDecodeTable(ary);
+	for (i = 0; i < 64; ++i) {
+		x = b64chars[i];
+		ary[x] = ((i & 0x30) >> 4) | ((i & 0x0F) << 12);
+	}
+	uint32_array_to_c_hex(ary, sizeof(ary) / sizeof(uint32_t), "base64_table_dec_32bit_d1_url");
+	printf("\n\n");
+
+	clearDecodeTable(ary);
+	for (i = 0; i < 64; ++i) {
+		x = b64chars[i];
+		ary[x] = ((i & 0x03) << 22) | ((i & 0x3c) << 6);
+	}
+	uint32_array_to_c_hex(ary, sizeof(ary) / sizeof(uint32_t), "base64_table_dec_32bit_d2_url");
+	printf("\n\n");
+
+	clearDecodeTable(ary);
+	for (i = 0; i < 64; ++i) {
+		x = b64chars[i];
+		ary[x] = i << 16;
+	}
+	uint32_array_to_c_hex(ary, sizeof(ary) / sizeof(uint32_t), "base64_table_dec_32bit_d3_url");
+	printf("\n\n");
+
 	printf("#else\n");
+
+	b64chars[62] = '+';
+	b64chars[63] = '/';
 
 	printf("\n\n/* SPECIAL DECODE TABLES FOR BIG ENDIAN (IBM/MOTOROLA/SUN) CPUS */\n\n");
 
@@ -176,6 +216,41 @@ int main(int argc, char** argv)
 		ary[x] = i << 8;
 	}
 	uint32_array_to_c_hex(ary, sizeof(ary) / sizeof(uint32_t), "base64_table_dec_32bit_d3");
+	printf("\n\n");
+
+	b64chars[62] = '-';
+	b64chars[63] = '_';
+
+	clearDecodeTable(ary);
+	for (i = 0; i < 64; ++i) {
+		x = b64chars[i];
+		ary[x] = i << 26;
+	}
+	uint32_array_to_c_hex(ary, sizeof(ary) / sizeof(uint32_t), "base64_table_dec_32bit_d0_url");
+	printf("\n\n");
+
+	clearDecodeTable(ary);
+	for (i = 0; i < 64; ++i) {
+		x = b64chars[i];
+		ary[x] = i << 20;
+	}
+	uint32_array_to_c_hex(ary, sizeof(ary) / sizeof(uint32_t), "base64_table_dec_32bit_d1_url");
+	printf("\n\n");
+
+	clearDecodeTable(ary);
+	for (i = 0; i < 64; ++i) {
+		x = b64chars[i];
+		ary[x] = i << 14;
+	}
+	uint32_array_to_c_hex(ary, sizeof(ary) / sizeof(uint32_t), "base64_table_dec_32bit_d2_url");
+	printf("\n\n");
+
+	clearDecodeTable(ary);
+	for (i = 0; i < 64; ++i) {
+		x = b64chars[i];
+		ary[x] = i << 8;
+	}
+	uint32_array_to_c_hex(ary, sizeof(ary) / sizeof(uint32_t), "base64_table_dec_32bit_d3_url");
 	printf("\n\n");
 
 	printf("#endif\n");

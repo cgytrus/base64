@@ -116,6 +116,57 @@ dec_loop_ssse3_inner (const uint8_t **s, uint8_t **o, size_t *rounds)
 	return 1;
 }
 
+static inline int
+dec_loop_ssse3_inner_url (const uint8_t **s, uint8_t **o, size_t *rounds)
+{
+	const __m128i lut_lo = _mm_setr_epi8(
+		0x15, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
+		0x11, 0x11, 0x13, 0x1A, 0x1B, 0x1B, 0x1B, 0x1A);
+
+	const __m128i lut_hi = _mm_setr_epi8(
+		0x10, 0x10, 0x01, 0x02, 0x04, 0x08, 0x04, 0x08,
+		0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10);
+
+	const __m128i lut_roll = _mm_setr_epi8(
+		0, -32,  17,   4, -65, -65, -71, -71,
+		0,   0,   0,   0,   0,   0,   0,   0);
+
+	const __m128i mask_2F = _mm_set1_epi8(0x2F);
+
+	// Load input:
+	__m128i str = _mm_loadu_si128((__m128i *) *s);
+
+	// Table lookups:
+	const __m128i hi_nibbles = _mm_and_si128(_mm_srli_epi32(str, 4), mask_2F);
+	const __m128i lo_nibbles = _mm_and_si128(str, mask_2F);
+	const __m128i hi         = _mm_shuffle_epi8(lut_hi, hi_nibbles);
+	const __m128i lo         = _mm_shuffle_epi8(lut_lo, lo_nibbles);
+
+	// Check for invalid input: if any "and" values from lo and hi are not
+	// zero, fall back on bytewise code to do error checking and reporting:
+	if (_mm_movemask_epi8(_mm_cmpgt_epi8(_mm_and_si128(lo, hi), _mm_setzero_si128())) != 0) {
+		return 0;
+	}
+
+	const __m128i eq_2F = _mm_cmpeq_epi8(str, mask_2F);
+	const __m128i roll  = _mm_shuffle_epi8(lut_roll, _mm_add_epi8(eq_2F, hi_nibbles));
+
+	// Now simply add the delta values to the input:
+	str = _mm_add_epi8(str, roll);
+
+	// Reshuffle the input to packed 12-byte output format:
+	str = dec_reshuffle(str);
+
+	// Store the output:
+	_mm_storeu_si128((__m128i *) *o, str);
+
+	*s += 16;
+	*o += 12;
+	*rounds -= 1;
+
+	return 1;
+}
+
 static inline void
 dec_loop_ssse3 (const uint8_t **s, size_t *slen, uint8_t **o, size_t *olen)
 {
@@ -163,6 +214,62 @@ dec_loop_ssse3 (const uint8_t **s, size_t *slen, uint8_t **o, size_t *olen)
 			break;
 		}
 		dec_loop_ssse3_inner(s, o, &rounds);
+		break;
+
+	} while (rounds > 0);
+
+	// Adjust for any rounds that were skipped:
+	*slen += rounds * 16;
+	*olen -= rounds * 12;
+}
+
+static inline void
+dec_loop_ssse3_url (const uint8_t **s, size_t *slen, uint8_t **o, size_t *olen)
+{
+	if (*slen < 24) {
+		return;
+	}
+
+	// Process blocks of 16 bytes per round. Because 4 extra zero bytes are
+	// written after the output, ensure that there will be at least 8 bytes
+	// of input data left to cover the gap. (6 data bytes and up to two
+	// end-of-string markers.)
+	size_t rounds = (*slen - 8) / 16;
+
+	*slen -= rounds * 16;	// 16 bytes consumed per round
+	*olen += rounds * 12;	// 12 bytes produced per round
+
+	do {
+		if (rounds >= 8) {
+			if (dec_loop_ssse3_inner_url(s, o, &rounds) &&
+			    dec_loop_ssse3_inner_url(s, o, &rounds) &&
+			    dec_loop_ssse3_inner_url(s, o, &rounds) &&
+			    dec_loop_ssse3_inner_url(s, o, &rounds) &&
+			    dec_loop_ssse3_inner_url(s, o, &rounds) &&
+			    dec_loop_ssse3_inner_url(s, o, &rounds) &&
+			    dec_loop_ssse3_inner_url(s, o, &rounds) &&
+			    dec_loop_ssse3_inner_url(s, o, &rounds)) {
+				continue;
+			}
+			break;
+		}
+		if (rounds >= 4) {
+			if (dec_loop_ssse3_inner_url(s, o, &rounds) &&
+			    dec_loop_ssse3_inner_url(s, o, &rounds) &&
+			    dec_loop_ssse3_inner_url(s, o, &rounds) &&
+			    dec_loop_ssse3_inner_url(s, o, &rounds)) {
+				continue;
+			}
+			break;
+		}
+		if (rounds >= 2) {
+			if (dec_loop_ssse3_inner_url(s, o, &rounds) &&
+			    dec_loop_ssse3_inner_url(s, o, &rounds)) {
+				continue;
+			}
+			break;
+		}
+		dec_loop_ssse3_inner_url(s, o, &rounds);
 		break;
 
 	} while (rounds > 0);

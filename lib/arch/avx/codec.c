@@ -30,12 +30,34 @@ BASE64_ENC_FUNCTION(avx)
 #endif
 }
 
+BASE64_ENC_FUNCTION(avx_url)
+{
+#if HAVE_AVX
+	#include "../generic/enc_head.c"
+	enc_loop_ssse3_url(&s, &slen, &o, &olen);
+	#include "../generic/enc_tail_url.c"
+#else
+	BASE64_ENC_STUB
+#endif
+}
+
 BASE64_DEC_FUNCTION(avx)
 {
 #if HAVE_AVX
 	#include "../generic/dec_head.c"
 	dec_loop_ssse3(&s, &slen, &o, &olen);
 	#include "../generic/dec_tail.c"
+#else
+	BASE64_DEC_STUB
+#endif
+}
+
+BASE64_DEC_FUNCTION(avx_url)
+{
+#if HAVE_AVX
+	#include "../generic/dec_head_url.c"
+	dec_loop_ssse3_url(&s, &slen, &o, &olen);
+	#include "../generic/dec_tail_url.c"
 #else
 	BASE64_DEC_STUB
 #endif
